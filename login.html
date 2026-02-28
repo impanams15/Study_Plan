@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - AI Study Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Design tokens matching index1.html */
+    :root {
+      --bg-page: #1a1b1e;
+      --bg-card: rgba(37, 38, 42, 0.65);
+      --bg-input: rgba(0, 0, 0, 0.25);
+      --text-primary: #f1f2f4;
+      --text-secondary: #a9b1bd;
+      --text-muted: #7a828e;
+      --accent: #8295f5;
+      --accent-soft: rgba(130, 149, 245, 0.15);
+      --accent-hover: #9aa9f7;
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --bg-input-hover: rgba(0, 0, 0, 0.35);
+      --border: rgba(255, 255, 255, 0.08);
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.3);
+      --space-xs: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --font-body: 'Inter', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      background-color: var(--bg-page);
+      background-image: linear-gradient(180deg, #212226 0%, #121212 100%);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Background blobs */
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.6;
+    }
+    body::before {
+      top: -10vw; left: -10vw; width: 50vw; height: 50vw;
+      background: radial-gradient(circle, var(--accent-soft), transparent 70%);
+      animation: floatBlob 20s infinite alternate ease-in-out;
+    }
+    body::after {
+      bottom: -10vw; right: -10vw; width: 45vw; height: 45vw;
+      background: radial-gradient(circle, rgba(100, 116, 139, 0.1), transparent 70%);
+      animation: floatBlob 25s infinite alternate-reverse ease-in-out;
+    }
+    @keyframes floatBlob {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, 40px) scale(1.1); }
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 1000px;
+      height: 600px;
+      margin: var(--space-md);
+      display: flex;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      transform: scale(0.98);
+      opacity: 0;
+      animation: containerEnter 0.6s var(--ease-out) forwards;
+    }
+
+    @keyframes containerEnter {
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Staggered Animations */
+    .animate-enter {
+      opacity: 0;
+      transform: translateY(15px);
+      animation: slideUpFade 0.6s var(--ease-out) forwards;
+    }
+    
+    .delay-1 { animation-delay: 100ms; }
+    .delay-2 { animation-delay: 200ms; }
+    .delay-3 { animation-delay: 300ms; }
+    @keyframes slideUpFade {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-form-section {
+      flex: 1;
+      padding: var(--space-xl) clamp(var(--space-xl), 5vw, 4rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .login-visual-section {
+      flex: 1;
+      background: linear-gradient(135deg, rgba(130, 149, 245, 0.05), rgba(0, 0, 0, 0.2));
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border-left: 1px solid var(--border);
+    }
+
+    @media (min-width: 768px) {
+      .login-visual-section { display: flex; }
+    }
+
+    .brand-logo {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: var(--space-xl);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      margin: 0 0 var(--space-xs) 0;
+      color: var(--text-primary);
+    }
+
+    p.subtitle {
+      color: var(--text-secondary);
+      margin: 0 0 var(--space-xl) 0;
+    }
+
+    .form-group {
+      margin-bottom: var(--space-lg);
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+
+    input:hover { border-color: var(--border-hover); }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    button.btn-primary {
+      width: 100%;
+      padding: 0.875rem;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button.btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(130, 149, 245, 0.3);
+    }
+
+    button.btn-primary:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    button.btn-primary:disabled {
+      background: var(--accent-hover);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Button Shimmer Effect */
+    button.btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+      transform: skewX(-25deg);
+      transition: none;
+    }
+    button.btn-primary:hover::after {
+      animation: shimmer 1s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; } 100% { left: 200%; }
+    }
+
+    .footer-links {
+      margin-top: var(--space-lg);
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .footer-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .footer-links a:hover { text-decoration: underline; }
+
+    .login-error {
+      padding: 0.75rem;
+      margin-bottom: var(--space-lg);
+      background: rgba(220, 38, 38, 0.15);
+      border: 1px solid #7f1d1d;
+      color: #fca5a5;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      text-align: center;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 1.2em; height: 1.2em;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Visual Section Animation */
+    .visual-content {
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-form-section">
+      <div class="brand-logo animate-enter">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+        AI Study Planner
+      </div>
+      <h2 class="animate-enter delay-1">Welcome back</h2>
+      <p class="subtitle animate-enter delay-1">Please enter your details to sign in.</p>
+      
+      <div id="login-error" class="login-error animate-enter delay-2" hidden></div>
+      <form id="login-form" class="animate-enter delay-2">
+        <div class="form-group animate-enter delay-2">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+        <div class="form-group animate-enter delay-3">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <label for="password" style="margin-bottom: 0;">Password</label>
+            <a href="forgot-password.html" style="font-size: 0.8125rem; color: var(--accent); text-decoration: none;">Forgot password?</a>
+          </div>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary animate-enter delay-3">Sign in</button>
+      </form>
+
+      <div class="footer-links animate-enter delay-3">
+        Don't have an account? <a href="signup.html">Sign up</a>
+        <div id="local-user-stats" style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-secondary); opacity: 0.8;"></div>
+        <div style="margin-top: 0.5rem;"><a href="admin.html" style="font-size: 0.8rem; opacity: 0.7;">Admin Dashboard</a></div>
+      </div>
+    </div>
+    
+    <div class="login-visual-section">
+      <div class="visual-content" style="text-align: center; padding: 2rem;">
+        <div style="width: 120px; height: 120px; background: var(--accent); border-radius: 50%; margin: 0 auto 2rem; box-shadow: 0 0 50px var(--accent-soft); position: relative; display: flex; align-items: center; justify-content: center;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+        </div>
+        <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin: 0 0 0.5rem 0; color: var(--text-primary);">Plan smarter</h3>
+        <p style="color: var(--text-secondary); margin: 0;">Let AI organize your study schedule for maximum efficiency.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Page Load Animation
+    window.addEventListener('load', () => {
+      document.body.style.opacity = '1';
+    });
+
+    // Display total registered users count (from LocalStorage)
+    const userKeys = Object.keys(localStorage).filter(k => k.startsWith('user_'));
+    const statsEl = document.getElementById('local-user-stats');
+    if (statsEl) {
+      statsEl.textContent = `Total Registered Users (Local): ${userKeys.length}`;
+      
+      // Log details to console for admin viewing (Press F12 to see)
+      if (userKeys.length > 0) {
+        console.log(`%c Total Users: ${userKeys.length}`, 'color: #8295f5; font-weight: bold;');
+        userKeys.forEach(k => {
+          console.log(`- ${k.replace('user_', '')}`);
+        });
+      }
+    }
+
+    // Check if already logged in
+    if (localStorage.getItem('isAuthenticated') === 'true') {
+      window.location.href = 'index1.html';
+    }
+
+    const form = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorBox = document.getElementById('login-error');
+    const loginBtn = form.querySelector('button.btn-primary');
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      
+      errorBox.hidden = true;
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+
+      // Simulate async operation for UI feedback
+      setTimeout(() => {
+        try {
+          if (!email || !password) {
+            throw new Error('Please fill in all fields.');
+          }
+
+          const userKey = `user_${email}`;
+          const storedUserRaw = localStorage.getItem(userKey);
+          if (!storedUserRaw) {
+            throw new Error('No account found with this email. Please sign up.');
+          }
+
+          const storedUser = JSON.parse(storedUserRaw);
+
+          if (storedUser.password === password) {
+            // Update last login timestamp
+            storedUser.lastLogin = new Date().toISOString();
+            localStorage.setItem(userKey, JSON.stringify(storedUser));
+
+            localStorage.setItem('isAuthenticated', 'true');
+            localStorage.setItem('currentUserEmail', email);
+            // Smooth exit
+            document.body.style.opacity = '0';
+            setTimeout(() => window.location.href = 'index1.html', 400);
+          } else {
+            throw new Error('Invalid email or password. Please try again.');
+          }
+        } catch (err) {
+          errorBox.textContent = err.message;
+          errorBox.hidden = false;
+          
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign in';
+
+          document.querySelector('.login-container').animate(
+            [{ transform: 'translateX(0)' }, { transform: 'translateX(-10px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(0)' }], 
+            { duration: 300 }
+          );
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>

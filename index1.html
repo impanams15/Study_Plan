@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI Study Planner - Plan and organize your study schedule with AI assistance.">
+  <title>AI Study Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Design tokens: soft palette & spacing */
+    :root {
+      --bg-page: #1a1b1e;
+      --bg-card: rgba(37, 38, 42, 0.65);
+      --bg-input: rgba(0, 0, 0, 0.25);
+      --text-primary: #f1f2f4;
+      --text-secondary: #a9b1bd;
+      --text-muted: #7a828e;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --bg-input-hover: rgba(0, 0, 0, 0.35);
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.25);
+      --shadow-card: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    [data-theme="light"] {
+      --bg-page: #f0f2f5;
+      --bg-card: rgba(255, 255, 255, 0.8);
+      --bg-input: rgba(255, 255, 255, 0.5);
+      --text-primary: #1a1b1e;
+      --text-secondary: #4a5568;
+      --text-muted: #718096;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-hover: rgba(0, 0, 0, 0.15);
+      --bg-input-hover: rgba(0, 0, 0, 0.05);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+      --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    :root {
+      --accent: #8295f5;
+      --accent-soft: rgba(130, 149, 245, 0.15);
+      --accent-hover: #9aa9f7;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --space-xs: 0.5rem;
+      --space-sm: 0.75rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 2.5rem;
+      --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --ease-spring: cubic-bezier(0.2, 1.1, 0.2, 1);
+      --font-body: 'Inter', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      height: 100%;
+      background-color: var(--bg-page);
+      background-image: linear-gradient(180deg, #212226 0%, #121212 100%);
+      background-attachment: fixed;
+      transition: background-color 0.3s ease;
+    }
+
+    [data-theme="light"] html {
+      background-image: linear-gradient(180deg, #f0f2f5 0%, #e2e8f0 100%);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      font-size: clamp(14px, 1.5vw, 16px);
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Ambient background blobs */
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.6;
+    }
+
+    body::before {
+      top: -10vw;
+      left: -10vw;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, var(--accent-soft), transparent 70%);
+      animation: floatBlob 20s infinite alternate ease-in-out;
+    }
+
+    body::after {
+      bottom: -10vw;
+      right: -10vw;
+      width: 45vw;
+      height: 45vw;
+      background: radial-gradient(circle, rgba(100, 116, 139, 0.1), transparent 70%);
+      animation: floatBlob 25s infinite alternate-reverse ease-in-out;
+    }
+
+    @keyframes floatBlob {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, 40px) scale(1.1); }
+    }
+
+    .app-header {
+      padding: clamp(1rem, 2.5vw, var(--space-xl)) clamp(1rem, 3vw, var(--space-lg));
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .app-header h1 {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: clamp(1.25rem, 2.4vw, 1.65rem);
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .app-main {
+      flex: 1;
+      padding: clamp(1rem, 3vw, var(--space-xl));
+    }
+
+    .app-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+    }
+
+    .input-section,
+    .output-section {
+      padding: var(--space-xl);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms var(--ease-out);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUpFade 0.6s var(--ease-out) forwards;
+    }
+
+    .tools-section {
+      animation-delay: 300ms;
+    }
+
+    .input-section { animation-delay: 100ms; }
+    .output-section { animation-delay: 200ms; }
+
+    @keyframes slideUpFade {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .input-section:hover,
+    .output-section:hover {
+      box-shadow: var(--shadow-md);
+      border-color: rgba(255,255,255,0.15);
+      transform: translateY(-2px);
+    }
+
+    .input-section h2,
+    .output-section h2,
+    .tools-section h2 {
+      margin: 0 0 var(--space-lg) 0;
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .input-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .input-group label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: var(--text-secondary);
+    }
+
+    .input-group input {
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out), transform 180ms var(--ease-out);
+    }
+
+    .input-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .input-group input:hover {
+      border-color: var(--border-hover);
+    }
+
+    .input-group button {
+      padding: var(--space-sm) var(--space-lg);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      font-family: var(--font-body);
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: background 180ms var(--ease-out), transform 120ms var(--ease-spring), box-shadow 180ms var(--ease-out), filter 180ms var(--ease-out);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .input-group button:hover {
+      background: var(--accent-hover);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    
+    /* Button Shimmer */
+    .input-group button:not(.btn-secondary)::after {
+      content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+      transform: skewX(-25deg); transition: none;
+    }
+    .input-group button:not(.btn-secondary):hover::after {
+      animation: shimmer 1s infinite;
+    }
+    @keyframes shimmer { 0% { left: -100%; } 100% { left: 200%; } }
+
+    .input-group button:active {
+      transform: translateY(0) scale(0.98);
+      filter: brightness(0.98);
+    }
+
+    .input-group button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md);
+    }
+
+    .input-group button[type="button"].btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .input-group button[type="button"].btn-secondary:hover {
+      background: var(--bg-input-hover);
+      border-color: var(--border-hover);
+    }
+
+    .input-group select {
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.9375rem;
+      font-family: var(--font-body);
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out), transform 180ms var(--ease-out);
+    }
+
+    .input-group select:hover {
+      border-color: var(--border-hover);
+    }
+
+    .input-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .subjects-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .subject-row {
+      display: flex;
+      gap: var(--space-sm);
+      align-items: flex-end;
+    }
+
+    .subject-row .input-group {
+      margin-bottom: 0;
+    }
+
+    .subject-row .input-group:first-child {
+      flex: 1;
+    }
+
+    .btn-remove-subject {
+      padding: var(--space-sm) var(--space-md);
+      font-size: 0.875rem;
+      font-family: var(--font-body);
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 180ms var(--ease-out), color 180ms var(--ease-out), border-color 180ms var(--ease-out), transform 120ms var(--ease-spring);
+    }
+
+    .subject-row.dragging {
+      opacity: 0.5;
+      background: var(--bg-input-hover);
+      border: 1px dashed var(--accent);
+    }
+
+    .subject-row {
+      cursor: grab;
+    }
+
+    .btn-remove-subject:hover {
+      background: rgba(220, 38, 38, 0.15);
+      color: #f87171;
+      border-color: #7f1d1d;
+    }
+
+    .btn-remove-subject:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(197, 48, 48, 0.3);
+    }
+
+    .btn-remove-subject:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      align-items: center;
+      padding-top: var(--space-lg);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-hint {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin: var(--space-xs) 0 0 0;
+    }
+
+    .form-errors {
+      padding: var(--space-md);
+      border: 1px solid #7f1d1d;
+      background: rgba(153, 27, 27, 0.2);
+      color: #fca5a5;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .field-error {
+      display: inline-block;
+      margin-top: var(--space-xs);
+      font-size: 0.8125rem;
+      color: #fca5a5;
+    }
+
+    input[aria-invalid="true"],
+    select[aria-invalid="true"] {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .subjects-fieldset {
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+
+    .subjects-fieldset legend {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .output-section .timetable-container {
+      min-height: 220px;
+      padding: var(--space-lg);
+      background: var(--bg-input);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border);
+      box-shadow: inset var(--shadow-sm);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .output-section .timetable-placeholder {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: var(--space-xl);
+      margin: auto;
+    }
+
+    .output-section .timetable-data {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .timetable-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-lg);
+      padding: var(--space-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .timetable-summary .summary-title {
+      font-weight: 600;
+      font-family: var(--font-heading);
+      letter-spacing: -0.01em;
+    }
+
+    .timetable-summary .summary-meta {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .timetable-summary button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: var(--font-body);
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 180ms var(--ease-out), border-color 180ms var(--ease-out);
+    }
+
+    .timetable-summary button:hover {
+      background: var(--bg-input-hover);
+      border-color: var(--border-hover);
+    }
+
+    .timetable-cards {
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: var(--space-md);
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: var(--space-lg);
+      align-items: stretch;
+    }
+
+    @media (min-width: 720px) {
+      .timetable-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1100px) {
+      .timetable-cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    .timetable-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      transform: translateY(0);
+      transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms var(--ease-out);
+      animation: cardIn 0.5s var(--ease-spring) both;
+      break-inside: avoid;
+    }
+
+    .timetable-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+      border-color: var(--accent);
+      z-index: 1;
+    }
+
+    .timetable-card__top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-md);
+      margin-bottom: var(--space-xs);
+    }
+
+    .timetable-card__name {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+
+    .timetable-card__hours {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .timetable-card__sub {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 1em; height: 1em;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .app-footer {
+      padding: var(--space-md) var(--space-lg);
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .app-footer p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .btn-logout {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: var(--font-body);
+      color: var(--text-secondary);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .btn-logout:hover {
+      background: var(--bg-input-hover);
+      color: var(--text-primary);
+      border-color: var(--border-hover);
+    }
+
+    /* Theme Toggle Switch */
+    .theme-toggle {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      color: var(--text-secondary);
+      transition: color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-toggle:hover {
+      color: var(--text-primary);
+    }
+
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* --- Productivity Tools Section --- */
+    .tools-section {
+      padding: var(--space-xl);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      width: 100%;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUpFade 0.6s var(--ease-out) forwards;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-lg);
+    }
+
+    .tool-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .tool-card h3 {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Timer */
+    .timer-display {
+      font-family: var(--font-heading);
+      font-size: 3rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      margin: var(--space-sm) 0;
+    }
+    .timer-controls {
+      display: flex;
+      gap: var(--space-sm);
+      justify-content: center;
+    }
+    .timer-controls button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    /* Progress */
+    .progress-container {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: var(--space-xs);
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .progress-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Tips & Quotes */
+    .tips-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .tip-item {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      padding-left: 0.75rem;
+      border-left: 2px solid var(--accent);
+    }
+    .quote-text {
+      font-style: italic;
+      color: var(--text-primary);
+      text-align: center;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .quote-author {
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: var(--space-xs);
+    }
+
+    /* Responsive layout tweaks */
+    @media (max-width: 640px) {
+      .app-container {
+        gap: var(--space-lg);
+      }
+
+      .output-section .timetable-container {
+        padding: var(--space-md);
+        min-height: 180px;
+      }
+
+      .subject-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .btn-remove-subject {
+        width: 100%;
+      }
+
+      .timetable-card__hours {
+        font-size: 1.35rem;
+      }
+    }
+
+    /* Tablet: slightly denser spacing, comfortable cards */
+    @media (min-width: 641px) and (max-width: 959px) {
+      .app-container {
+        gap: var(--space-xl);
+      }
+    }
+
+    /* Desktop: two-column dashboard layout */
+    @media (min-width: 960px) {
+      .app-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+      }
+      .input-section, .output-section {
+        flex: 1 1 45%;
+      }
+      .tools-section {
+        flex: 1 1 100%;
+      }
+    }
+
+    /* Respect user motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="app-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>AI Study Planner</h1>
+      <div style="display: flex; gap: var(--space-sm);">
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+          <!-- Sun icon (for dark mode) -->
+          <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <!-- Moon icon (for light mode) -->
+          <svg class="moon-icon" viewBox="0 0 24 24" style="display: none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button id="profile-btn" class="btn-logout">Profile</button>
+        <button id="logout-btn" class="btn-logout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="app-container">
+      <!-- Input: user data -->
+      <section class="input-section" id="input-section" aria-labelledby="input-heading">
+        <h2 id="input-heading">Your details</h2>
+        <form class="input-form" id="study-input-form" aria-describedby="input-heading form-instructions">
+          <p id="form-instructions" class="visually-hidden">Add your total study hours and one or more subjects with a
+            priority level, then generate your timetable.</p>
+          <div id="form-errors" class="form-errors" role="alert" aria-live="polite" hidden></div>
+
+          <div class="input-group">
+            <label for="total-hours">Total available study hours</label>
+            <input type="number" id="total-hours" name="total-hours" min="1" max="168" step="1" placeholder="e.g. 20"
+              aria-required="true" aria-describedby="total-hours-hint total-hours-error" />
+            <span id="total-hours-hint" class="input-hint">Total hours you can dedicate to studying (e.g. per
+              week).</span>
+            <span id="total-hours-error" class="field-error" hidden></span>
+          </div>
+
+          <fieldset class="subjects-fieldset" aria-labelledby="subjects-legend"
+            aria-describedby="subjects-desc subjects-error">
+            <legend id="subjects-legend">Subjects</legend>
+            <p id="subjects-desc" class="input-hint">Add each subject and set its priority (high, medium, or low) for
+              scheduling.</p>
+            <span id="subjects-error" class="field-error" hidden></span>
+            <div class="subjects-list" id="subjects-list" role="list">
+              <!-- Subject rows inserted by JS; first row is template -->
+              <div class="subject-row" role="listitem" data-subject-index="0">
+                <div class="input-group" style="pointer-events: none;">
+                  <label for="subject-name-0">Subject name</label>
+                  <input type="text" id="subject-name-0" name="subject-name[]" placeholder="e.g. Mathematics"
+                    aria-label="Subject name for subject 1" autocomplete="off" />
+                </div>
+                <div class="input-group">
+                  <label for="subject-priority-0">Priority</label>
+                  <select id="subject-priority-0" name="subject-priority[]" aria-label="Priority for subject 1">
+                    <option value="high">High</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <button type="button" class="btn-remove-subject" aria-label="Remove subject 1"
+                  title="Remove this subject" disabled>Remove</button>
+              </div>
+            </div>
+            <div class="input-group">
+              <button type="button" id="add-subject-btn" class="btn-secondary">Add subject</button>
+            </div>
+          </fieldset>
+
+          <div class="form-actions">
+            <button type="submit" id="submit-btn">Generate timetable</button>
+            <button type="button" id="reset-btn" class="btn-secondary">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Output: generated timetable -->
+      <section class="output-section" id="output-section" aria-labelledby="output-heading">
+        <h2 id="output-heading">Generated timetable</h2>
+        <div class="timetable-container" id="timetable-container">
+          <p class="timetable-placeholder" id="timetable-placeholder">
+            Your timetable will appear here after you submit your details.
+          </p>
+          <div class="timetable-summary" id="timetable-summary" hidden></div>
+          <div class="timetable-cards" id="timetable-cards" role="list" aria-label="Study timetable by subject" hidden>
+          </div>
+          <pre class="timetable-data" id="timetable-data" hidden></pre>
+        </div>
+      </section>
+
+      <!-- Productivity Tools -->
+      <section class="tools-section" aria-labelledby="tools-heading">
+        <h2 id="tools-heading">Student Productivity Hub</h2>
+        <div class="tools-grid">
+          
+          <!-- Pomodoro Timer -->
+          <div class="tool-card">
+            <h3>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              Pomodoro Timer
+            </h3>
+            <div class="timer-display" id="timer-display">25:00</div>
+            <div class="timer-controls">
+              <button type="button" id="timer-start" class="btn-secondary">Start</button>
+              <button type="button" id="timer-reset" class="btn-secondary">Reset</button>
+              <button type="button" id="timer-mode" class="btn-secondary" title="Switch Mode">Break</button>
+            </div>
+          </div>
+
+          <!-- Progress Tracker -->
+          <div class="tool-card">
+            <h3>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              Progress Tracker
+            </h3>
+            <div class="input-group">
+              <label for="hours-done" style="font-size:0.8rem;">Hours Completed Today</label>
+              <input type="number" id="hours-done" placeholder="0" min="0" step="0.5" style="padding:0.4rem;">
+            </div>
+            <div class="progress-stats">
+              <span id="progress-text">0% Completed</span>
+              <span id="progress-fraction">0 / 0h</span>
+            </div>
+            <div class="progress-container">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+          </div>
+
+          <!-- Smart Tips -->
+          <div class="tool-card">
+            <h3>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+              Smart Study Tips
+            </h3>
+            <ul class="tips-list" id="tips-list">
+              <li class="tip-item">Generate a timetable to see personalized tips here.</li>
+            </ul>
+          </div>
+
+          <!-- Motivation -->
+          <div class="tool-card">
+            <h3>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+              Daily Motivation
+            </h3>
+            <blockquote id="quote-block">
+              <p class="quote-text">"The secret of getting ahead is getting started."</p>
+              <div class="quote-author">- Mark Twain</div>
+            </blockquote>
+            <button type="button" id="new-quote-btn" class="btn-secondary" style="margin-top:auto; font-size:0.8rem;">New Quote</button>
+          </div>
+
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; <span id="year"></span> AI Study Planner</p>
+  </footer>
+
+  <script>
+    // Page Load Animation
+    window.addEventListener('load', () => {
+      document.body.style.opacity = '1';
+    });
+
+    // Auth check
+    const currentUserEmail = localStorage.getItem('currentUserEmail');
+    if (localStorage.getItem('isAuthenticated') !== 'true' || !currentUserEmail) {
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('currentUserEmail');
+      window.location.href = 'login.html';
+    }
+
+    // Theme handling
+    const themeToggle = document.getElementById('theme-toggle');
+    const sunIcon = themeToggle.querySelector('.sun-icon');
+    const moonIcon = themeToggle.querySelector('.moon-icon');
+    
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      
+      if (theme === 'light') {
+        sunIcon.style.display = 'none';
+        moonIcon.style.display = 'block';
+      } else {
+        sunIcon.style.display = 'block';
+        moonIcon.style.display = 'none';
+      }
+    }
+
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      setTheme(newTheme);
+    });
+
+    document.getElementById('year').textContent = String(new Date().getFullYear());
+
+    (() => {
+      'use strict';
+
+      const STORAGE_KEY = `ai-study-planner:data:${currentUserEmail}`;
+
+      const dom = {
+        form: document.getElementById('study-input-form'),
+        totalHours: document.getElementById('total-hours'),
+        subjectsList: document.getElementById('subjects-list'),
+        addSubjectBtn: document.getElementById('add-subject-btn'),
+        resetBtn: document.getElementById('reset-btn'),
+        errorsBox: document.getElementById('form-errors'),
+        totalHoursError: document.getElementById('total-hours-error'),
+        subjectsError: document.getElementById('subjects-error'),
+        placeholder: document.getElementById('timetable-placeholder'),
+        summary: document.getElementById('timetable-summary'),
+        cards: document.getElementById('timetable-cards'),
+        debug: document.getElementById('timetable-data')
+      };
+
+      if (!dom.form || !dom.totalHours || !dom.subjectsList || !dom.addSubjectBtn) return;
+
+      /* ------------------------------ Storage ------------------------------ */
+      const storage = {
+        load() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        },
+        save(payload) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        clear() {
+          try { localStorage.removeItem(STORAGE_KEY); } catch { }
+        }
+      };
+
+      /* --------------------------- Timetable core -------------------------- */
+      function normalizePriority(value) {
+        const v = String(value ?? '').toLowerCase().trim();
+        if (v === 'high' || v === 'medium' || v === 'low') return v;
+        return 'medium';
+      }
+
+      function priorityWeight(priority) {
+        const p = normalizePriority(priority);
+        if (p === 'high') return 3;
+        if (p === 'medium') return 2;
+        return 1; // low
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function cleanSubjectsInput(subjects) {
+        // Deduplicate by case-insensitive name; keep the highest priority if duplicates exist.
+        const map = Object.create(null);
+        for (const s of subjects) {
+          const rawName = s && s.name != null ? String(s.name) : '';
+          const name = rawName.trim().replace(/\s+/g, ' ');
+          if (!name) continue;
+          const key = name.toLowerCase();
+          const priority = normalizePriority(s && s.priority);
+          const weight = priorityWeight(priority);
+          if (!map[key] || weight > map[key].weight) {
+            map[key] = { name, priority, weight };
+          }
+        }
+        return Object.keys(map).map((k) => map[k]);
+      }
+
+      function allocateIntegerHours(totalHours, subjects) {
+        // Ensures each subject gets at least 1 hour (since totalHours >= subjects.length here).
+        const n = subjects.length;
+        const base = 1;
+        const remaining = totalHours - n * base;
+
+        let sumW = 0;
+        for (const s of subjects) sumW += s.weight;
+
+        const adds = new Array(n).fill(0);
+        const remainders = new Array(n).fill(0);
+        let used = 0;
+
+        for (let i = 0; i < n; i++) {
+          const exact = sumW ? (remaining * subjects[i].weight) / sumW : 0;
+          const floored = Math.floor(exact);
+          adds[i] = floored;
+          remainders[i] = exact - floored;
+          used += floored;
+        }
+
+        let leftover = remaining - used;
+        while (leftover > 0) {
+          let bestIdx = 0;
+          for (let i = 1; i < n; i++) {
+            if (remainders[i] > remainders[bestIdx]) bestIdx = i;
+            else if (remainders[i] === remainders[bestIdx] && subjects[i].weight > subjects[bestIdx].weight) bestIdx = i;
+          }
+          adds[bestIdx] += 1;
+          remainders[bestIdx] = 0;
+          leftover -= 1;
+        }
+
+        return subjects.map((s, idx) => ({
+          name: s.name,
+          priority: s.priority,
+          weight: s.weight,
+          hours: base + adds[idx]
+        }));
+      }
+
+      function allocateFractionalHours(totalHours, subjects) {
+        // Proportional distribution for small totals; avoids zero allocation by keeping decimals.
+        const n = subjects.length;
+        let sumW = 0;
+        for (const s of subjects) sumW += s.weight;
+
+        const raw = subjects.map((s) => {
+          const exact = sumW ? (totalHours * s.weight) / sumW : totalHours / n;
+          return { ...s, exact };
+        });
+
+        // Round to 2 decimals but preserve sum with a final adjustment.
+        const rounded = raw.map((r) => ({
+          name: r.name,
+          priority: r.priority,
+          weight: r.weight,
+          hours: Math.max(0.01, Math.round(r.exact * 100) / 100)
+        }));
+
+        const sum = rounded.reduce((acc, s) => acc + s.hours, 0);
+        const diff = Math.round((totalHours - sum) * 100) / 100;
+        if (Math.abs(diff) >= 0.01) {
+          let maxIdx = 0;
+          for (let i = 1; i < rounded.length; i++) {
+            if (rounded[i].hours > rounded[maxIdx].hours) maxIdx = i;
+          }
+          rounded[maxIdx].hours = Math.max(0.01, Math.round((rounded[maxIdx].hours + diff) * 100) / 100);
+        }
+
+        return rounded;
+      }
+
+      function generateStudyTimetable(totalHours, subjectsInput) {
+        let total = Number(totalHours);
+        if (!Number.isFinite(total) || total <= 0) {
+          throw new Error('Please enter a valid number for total available study hours.');
+        }
+        total = Math.round(total * 100) / 100;
+
+        const subjects = cleanSubjectsInput(subjectsInput || []);
+        if (!subjects.length) {
+          throw new Error('Please add at least one subject.');
+        }
+
+        let allocations;
+        if (total >= subjects.length && Number.isInteger(total)) {
+          allocations = allocateIntegerHours(total, subjects);
+        } else if (total >= subjects.length && !Number.isInteger(total)) {
+          // Fractional totals (e.g. 12.5 hours): allocate with 1-hour minimum then add remainder.
+          const floored = Math.floor(total);
+          allocations = allocateIntegerHours(floored, subjects);
+          const extra = Math.round((total - floored) * 100) / 100;
+          if (extra > 0) {
+            let best = 0;
+            for (let i = 1; i < allocations.length; i++) {
+              if (allocations[i].weight > allocations[best].weight) best = i;
+              else if (allocations[i].weight === allocations[best].weight && allocations[i].hours < allocations[best].hours) best = i;
+            }
+            allocations[best].hours = Math.round((allocations[best].hours + extra) * 100) / 100;
+          }
+        } else {
+          allocations = allocateFractionalHours(total, subjects);
+        }
+
+        const totalAllocatedHours = Math.round(allocations.reduce((acc, s) => acc + s.hours, 0) * 100) / 100;
+        return { totalHours: total, totalAllocatedHours, subjects: allocations };
+      }
+
+      /* --------------------------- Subject rows UI -------------------------- */
+      function createOption(value, label, selected) {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        if (selected) opt.selected = true;
+        return opt;
+      }
+
+      function buildSubjectRow(index) {
+        const row = document.createElement('div');
+        row.className = 'subject-row';
+        row.setAttribute('role', 'listitem');
+        row.dataset.subjectIndex = String(index);
+        row.draggable = true;
+        
+
+        const nameGroup = document.createElement('div');
+        nameGroup.className = 'input-group';
+        const nameLabel = document.createElement('label');
+        nameLabel.textContent = 'Subject name';
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.name = 'subject-name[]';
+        nameInput.placeholder = 'e.g. Mathematics';
+        nameInput.autocomplete = 'off';
+        // Prevent drag start on input to allow text selection
+        nameInput.addEventListener('mousedown', e => e.stopPropagation());
+        
+        nameGroup.appendChild(nameLabel);
+        nameGroup.appendChild(nameInput);
+
+        const priorityGroup = document.createElement('div');
+        priorityGroup.className = 'input-group';
+        const priorityLabel = document.createElement('label');
+        priorityLabel.textContent = 'Priority';
+        const prioritySelect = document.createElement('select');
+        prioritySelect.name = 'subject-priority[]';
+        prioritySelect.appendChild(createOption('high', 'High', false));
+        prioritySelect.appendChild(createOption('medium', 'Medium', true));
+        prioritySelect.appendChild(createOption('low', 'Low', false));
+        // Prevent drag start on select
+        prioritySelect.addEventListener('mousedown', e => e.stopPropagation());
+
+        priorityGroup.appendChild(priorityLabel);
+        priorityGroup.appendChild(prioritySelect);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn-remove-subject';
+        removeBtn.title = 'Remove this subject';
+        removeBtn.textContent = 'Remove';
+        // Prevent drag start on button
+        removeBtn.addEventListener('mousedown', e => e.stopPropagation());
+
+        // Drag events
+        row.addEventListener('dragstart', () => {
+          row.classList.add('dragging');
+        });
+
+        row.addEventListener('dragend', () => {
+          row.classList.remove('dragging');
+          refreshSubjectRows();
+        });
+
+        row.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const draggingRow = document.querySelector('.dragging');
+          const siblings = [...dom.subjectsList.querySelectorAll('.subject-row:not(.dragging)')];
+          
+          const nextSibling = siblings.find(sibling => {
+            return e.clientY <= sibling.getBoundingClientRect().top + sibling.offsetHeight / 2;
+          });
+
+          if (nextSibling) {
+            dom.subjectsList.insertBefore(draggingRow, nextSibling);
+          } else {
+            dom.subjectsList.appendChild(draggingRow);
+          }
+        });
+
+        row.addEventListener('dragenter', e => e.preventDefault());
+
+        row.appendChild(nameGroup);
+        row.appendChild(priorityGroup);
+        row.appendChild(removeBtn);
+        return row;
+      }
+
+      function refreshSubjectRows() {
+        const rows = dom.subjectsList.querySelectorAll('.subject-row');
+        rows.forEach((row, i) => {
+          row.dataset.subjectIndex = String(i);
+
+          const nameInput = row.querySelector('input[name="subject-name[]"]');
+          const prioritySelect = row.querySelector('select[name="subject-priority[]"]');
+          const removeBtn = row.querySelector('.btn-remove-subject');
+
+          if (nameInput) {
+            nameInput.id = `subject-name-${i}`;
+            nameInput.setAttribute('aria-label', `Subject name for subject ${i + 1}`);
+            const label = nameInput.closest('.input-group')?.querySelector('label');
+            if (label) label.setAttribute('for', nameInput.id);
+          }
+
+          if (prioritySelect) {
+            prioritySelect.id = `subject-priority-${i}`;
+            prioritySelect.setAttribute('aria-label', `Priority for subject ${i + 1}`);
+            const label = prioritySelect.closest('.input-group')?.querySelector('label');
+            if (label) label.setAttribute('for', prioritySelect.id);
+          }
+
+          if (removeBtn) {
+            removeBtn.disabled = rows.length <= 1;
+            removeBtn.setAttribute('aria-label', `Remove subject ${i + 1}`);
+          }
+        });
+      }
+
+      function setSubjectsOnForm(subjects) {
+        dom.subjectsList.innerHTML = '';
+        const list = Array.isArray(subjects) ? subjects : [];
+        for (let i = 0; i < list.length; i++) {
+          const row = buildSubjectRow(i);
+          row.querySelector('input[name="subject-name[]"]').value = list[i]?.name != null ? String(list[i].name) : '';
+          row.querySelector('select[name="subject-priority[]"]').value = normalizePriority(list[i]?.priority);
+          dom.subjectsList.appendChild(row);
+        }
+        if (!dom.subjectsList.querySelector('.subject-row')) dom.subjectsList.appendChild(buildSubjectRow(0));
+        refreshSubjectRows();
+      }
+
+      function addSubjectRow() {
+        const index = dom.subjectsList.querySelectorAll('.subject-row').length;
+        const row = buildSubjectRow(index);
+        dom.subjectsList.appendChild(row);
+        refreshSubjectRows();
+        row.querySelector('input[name="subject-name[]"]')?.focus();
+      }
+
+      function removeSubjectRow(removeButton) {
+        const rows = dom.subjectsList.querySelectorAll('.subject-row');
+        if (rows.length <= 1) return;
+
+        const row = removeButton.closest('.subject-row');
+        if (!row) return;
+
+        const nextFocus =
+          row.nextElementSibling?.querySelector('input[name="subject-name[]"]') ||
+          row.previousElementSibling?.querySelector('input[name="subject-name[]"]') ||
+          dom.addSubjectBtn;
+
+        row.remove();
+        refreshSubjectRows();
+        nextFocus?.focus?.();
+      }
+
+      /* -------------------------- Rendering (cards) ------------------------- */
+      function formatHours(hours) {
+        const num = Number(hours);
+        if (!Number.isFinite(num)) return '0';
+        return String(Math.round(num * 100) / 100);
+      }
+
+      function clearTimetableView() {
+        dom.placeholder && (dom.placeholder.hidden = false);
+        if (dom.summary) { dom.summary.hidden = true; dom.summary.innerHTML = ''; }
+        if (dom.cards) { dom.cards.hidden = true; dom.cards.innerHTML = ''; }
+        if (dom.debug) { dom.debug.hidden = true; dom.debug.textContent = ''; }
+      }
+
+      function exportToCSV(timetable) {
+        if (!timetable || !timetable.subjects || !timetable.subjects.length) return;
+
+        const headers = ['Subject', 'Priority', 'Allocated Hours'];
+        const rows = timetable.subjects.map(s => [
+          `"${String(s.name).replace(/"/g, '""')}"`,
+          normalizePriority(s.priority),
+          formatHours(s.hours)
+        ]);
+
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(r => r.join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'study_timetable.csv';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function saveToProfile(timetable) {
+        const currentUserEmail = localStorage.getItem('currentUserEmail');
+        if (!currentUserEmail) return;
+
+        const userKey = `user_${currentUserEmail}`;
+        const userData = JSON.parse(localStorage.getItem(userKey) || '{}');
+        
+        if (!userData.savedTimetables) {
+          userData.savedTimetables = [];
+        }
+
+        const newEntry = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          timetable: timetable,
+          inputs: window.aiStudyPlannerFormData
+        };
+
+        userData.savedTimetables.push(newEntry);
+        localStorage.setItem(userKey, JSON.stringify(userData));
+        alert('Timetable saved to profile successfully!');
+      }
+
+      function renderTimetableCards(timetable) {
+        if (!dom.cards) return;
+
+        if (dom.placeholder) dom.placeholder.hidden = true;
+
+        dom.cards.innerHTML = '';
+        dom.cards.hidden = false;
+
+        if (dom.summary) {
+          dom.summary.hidden = false;
+          dom.summary.innerHTML =
+            `<div>` +
+            `<div class="summary-title">Allocation summary</div>` +
+            `<div class="summary-meta">` +
+            `Total: <strong>${formatHours(timetable.totalHours)}</strong> hours · ` +
+            `<strong>${timetable.subjects ? timetable.subjects.length : 0}</strong> subjects` +
+            `</div>` +
+            `</div>` +
+            `<button type="button" id="export-csv-btn">Export CSV</button>` +
+            `<button type="button" id="save-profile-btn">Save to Profile</button>`;
+
+          document.getElementById('export-csv-btn').addEventListener('click', () => exportToCSV(timetable));
+          document.getElementById('save-profile-btn').addEventListener('click', () => saveToProfile(timetable));
+        }
+
+        (timetable.subjects || []).forEach((s) => {
+          const card = document.createElement('div');
+          card.className = 'timetable-card';
+          card.style.animationDelay = `${Math.random() * 0.3}s`; // Staggered card entry
+          card.setAttribute('role', 'listitem');
+
+          const top = document.createElement('div');
+          top.className = 'timetable-card__top';
+
+          const name = document.createElement('h3');
+          name.className = 'timetable-card__name';
+          name.textContent = s.name;
+
+          top.appendChild(name);
+
+          const hours = document.createElement('div');
+          hours.className = 'timetable-card__hours';
+          hours.textContent = `${formatHours(s.hours)}h`;
+
+          const sub = document.createElement('div');
+          sub.className = 'timetable-card__sub';
+          sub.textContent = `Priority: ${normalizePriority(s.priority)}`;
+
+          card.appendChild(top);
+          card.appendChild(hours);
+          card.appendChild(sub);
+          dom.cards.appendChild(card);
+        });
+      }
+
+      /* -------------------------- Validation & form ------------------------- */
+      function clearErrors() {
+        if (dom.errorsBox) { dom.errorsBox.hidden = true; dom.errorsBox.textContent = ''; }
+        if (dom.totalHoursError) { dom.totalHoursError.hidden = true; dom.totalHoursError.textContent = ''; }
+        if (dom.subjectsError) { dom.subjectsError.hidden = true; dom.subjectsError.textContent = ''; }
+        dom.totalHours.removeAttribute('aria-invalid');
+        dom.form.querySelectorAll('input[name="subject-name[]"]').forEach((inp) => inp.removeAttribute('aria-invalid'));
+      }
+
+      function showError(message, field) {
+        if (dom.errorsBox) {
+          dom.errorsBox.hidden = false;
+          dom.errorsBox.textContent = message;
+        }
+
+        if (field === 'total-hours') {
+          dom.totalHours.setAttribute('aria-invalid', 'true');
+          if (dom.totalHoursError) {
+            dom.totalHoursError.hidden = false;
+            dom.totalHoursError.textContent = message;
+          }
+          dom.totalHours.focus();
+        }
+
+        if (field === 'subjects') {
+          if (dom.subjectsError) {
+            dom.subjectsError.hidden = false;
+            dom.subjectsError.textContent = message;
+          }
+          const first = dom.form.querySelector('input[name="subject-name[]"]');
+          if (first) {
+            first.setAttribute('aria-invalid', 'true');
+            first.focus();
+          }
+        }
+      }
+
+      function collectFormData() {
+        const totalRaw = dom.totalHours.value;
+        const totalNum = clamp(Number(totalRaw), 0.01, 168);
+
+        const names = dom.form.querySelectorAll('input[name="subject-name[]"]');
+        const priorities = dom.form.querySelectorAll('select[name="subject-priority[]"]');
+
+        const subjects = [];
+        const emptyNameInputs = [];
+
+        for (let i = 0; i < names.length; i++) {
+          const name = String(names[i].value ?? '').trim();
+          const priority = normalizePriority(priorities[i]?.value);
+          if (!name) {
+            emptyNameInputs.push(names[i]);
+            continue;
+          }
+          subjects.push({ name, priority });
+        }
+
+        return { totalRaw, totalNum, subjects, emptyNameInputs };
+      }
+
+      function validateAndStructure() {
+        const { totalRaw, totalNum, subjects, emptyNameInputs } = collectFormData();
+
+        if (!Number.isFinite(Number(totalRaw)) || Number(totalRaw) <= 0) {
+          showError('Enter a valid total study hours number greater than 0.', 'total-hours');
+          return null;
+        }
+
+        if (!subjects.length) {
+          showError('Add at least one subject name.', 'subjects');
+          return null;
+        }
+
+        if (emptyNameInputs.length) {
+          if (dom.subjectsError) {
+            dom.subjectsError.hidden = false;
+            dom.subjectsError.textContent = 'Please fill in all subject names or remove empty subject rows.';
+          }
+          if (dom.errorsBox) {
+            dom.errorsBox.hidden = false;
+            dom.errorsBox.textContent = 'Some subject rows are empty. Please fill them in or remove them.';
+          }
+          emptyNameInputs.forEach((inp) => inp.setAttribute('aria-invalid', 'true'));
+          emptyNameInputs[0]?.focus?.();
+          return null;
+        }
+
+        return {
+          totalHours: Math.round(totalNum * 100) / 100,
+          subjects: cleanSubjectsInput(subjects).map((s) => ({ name: s.name, priority: s.priority }))
+        };
+      }
+
+      /* ------------------------------ Reset/restore ------------------------------ */
+      function resetApp() {
+        clearErrors();
+        dom.totalHours.value = '';
+        setSubjectsOnForm([{ name: '', priority: 'medium' }]);
+        clearTimetableView();
+        storage.clear();
+
+        try { delete window.aiStudyPlannerFormData; } catch { window.aiStudyPlannerFormData = undefined; }
+        try { delete window.aiStudyPlannerTimetable; } catch { window.aiStudyPlannerTimetable = undefined; }
+
+        dom.totalHours.focus();
+      }
+
+      function persistState(inputs, timetable) {
+        storage.save({
+          savedAt: new Date().toISOString(),
+          inputs,
+          timetable
+        });
+      }
+
+      function restoreOnLoad() {
+        const saved = storage.load();
+        if (!saved || !saved.inputs) return;
+
+        if (saved.inputs.totalHours != null) dom.totalHours.value = String(saved.inputs.totalHours);
+        if (Array.isArray(saved.inputs.subjects)) setSubjectsOnForm(saved.inputs.subjects);
+
+        if (saved.timetable && Array.isArray(saved.timetable.subjects)) {
+          renderTimetableCards(saved.timetable);
+          window.aiStudyPlannerFormData = saved.inputs;
+          window.aiStudyPlannerTimetable = saved.timetable;
+        }
+      }
+
+      /* ----------------------- Productivity Tools Logic ----------------------- */
+      
+      // 1. Pomodoro Timer
+      let timerInterval;
+      let timeLeft = 25 * 60;
+      let isWorkMode = true;
+      let isRunning = false;
+
+      const timerDisplay = document.getElementById('timer-display');
+      const startBtn = document.getElementById('timer-start');
+      const resetBtn = document.getElementById('timer-reset');
+      const modeBtn = document.getElementById('timer-mode');
+
+      function updateTimerDisplay() {
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        timerDisplay.textContent = `${m}:${s}`;
+      }
+
+      startBtn.addEventListener('click', () => {
+        if (isRunning) {
+          clearInterval(timerInterval);
+          startBtn.textContent = 'Start';
+          isRunning = false;
+        } else {
+          timerInterval = setInterval(() => {
+            if (timeLeft > 0) {
+              timeLeft--;
+              updateTimerDisplay();
+            } else {
+              clearInterval(timerInterval);
+              isRunning = false;
+              startBtn.textContent = 'Start';
+              // Simple browser notification
+              if (Notification.permission === "granted") {
+                new Notification(isWorkMode ? "Time for a break!" : "Back to work!");
+              } else if (Notification.permission !== "denied") {
+                Notification.requestPermission();
+                alert(isWorkMode ? "Time for a break!" : "Back to work!");
+              } else {
+                alert(isWorkMode ? "Time for a break!" : "Back to work!");
+              }
+            }
+          }, 1000);
+          startBtn.textContent = 'Pause';
+          isRunning = true;
+        }
+      });
+
+      resetBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        isRunning = false;
+        startBtn.textContent = 'Start';
+        timeLeft = isWorkMode ? 25 * 60 : 5 * 60;
+        updateTimerDisplay();
+      });
+
+      modeBtn.addEventListener('click', () => {
+        isWorkMode = !isWorkMode;
+        modeBtn.textContent = isWorkMode ? 'Break' : 'Work';
+        resetBtn.click();
+      });
+
+      // 2. Progress Tracker
+      const hoursDoneInput = document.getElementById('hours-done');
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+      const progressFraction = document.getElementById('progress-fraction');
+
+      function updateProgress() {
+        const done = parseFloat(hoursDoneInput.value) || 0;
+        const total = parseFloat(dom.totalHours.value) || 0;
+        
+        if (total > 0) {
+          const pct = Math.min(100, Math.max(0, (done / total) * 100));
+          progressFill.style.width = `${pct}%`;
+          progressText.textContent = `${Math.round(pct)}% Completed`;
+          progressFraction.textContent = `${done} / ${total}h`;
+        } else {
+          progressFill.style.width = '0%';
+          progressText.textContent = '0% Completed';
+          progressFraction.textContent = '0 / 0h';
+        }
+      }
+      hoursDoneInput.addEventListener('input', updateProgress);
+      dom.totalHours.addEventListener('input', updateProgress);
+
+      // 3. Motivation
+      const quotes = [
+        { t: "The secret of getting ahead is getting started.", a: "Mark Twain" },
+        { t: "It always seems impossible until it's done.", a: "Nelson Mandela" },
+        { t: "Don't watch the clock; do what it does. Keep going.", a: "Sam Levenson" },
+        { t: "Quality is not an act, it is a habit.", a: "Aristotle" },
+        { t: "Start where you are. Use what you have. Do what you can.", a: "Arthur Ashe" }
+      ];
+      const quoteText = document.querySelector('.quote-text');
+      const quoteAuthor = document.querySelector('.quote-author');
+      
+      document.getElementById('new-quote-btn').addEventListener('click', () => {
+        const q = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteText.textContent = `"${q.t}"`;
+        quoteAuthor.textContent = `- ${q.a}`;
+      });
+
+      // 4. Smart Tips Generator
+      function generateSmartTips(subjects) {
+        const tipsList = document.getElementById('tips-list');
+        tipsList.innerHTML = '';
+        
+        const tips = [];
+        // General tip
+        tips.push("Use active recall: test yourself instead of just re-reading.");
+        
+        subjects.forEach(s => {
+          const name = s.name.toLowerCase();
+          if (name.includes('math') || name.includes('calc') || name.includes('algebra')) {
+            tips.push(`<strong>${s.name}</strong>: Focus on solving practice problems rather than reading theory.`);
+          } else if (name.includes('history') || name.includes('social')) {
+            tips.push(`<strong>${s.name}</strong>: Create a timeline to visualize events and cause-effect relationships.`);
+          } else if (name.includes('science') || name.includes('bio') || name.includes('chem') || name.includes('physics')) {
+            tips.push(`<strong>${s.name}</strong>: Use diagrams and flowcharts to understand complex processes.`);
+          } else if (name.includes('language') || name.includes('english') || name.includes('spanish')) {
+            tips.push(`<strong>${s.name}</strong>: Use flashcards for vocabulary and practice writing sentences.`);
+          } else if (name.includes('code') || name.includes('program') || name.includes('cs')) {
+            tips.push(`<strong>${s.name}</strong>: Build small projects to reinforce concepts.`);
+          }
+        });
+
+        // Add generic priority tip if high priority exists
+        if (subjects.some(s => s.priority === 'high')) {
+          tips.push("Tackle your High priority subjects when your energy is highest.");
+        }
+
+        // Dedupe and limit
+        const uniqueTips = [...new Set(tips)].slice(0, 4);
+        
+        uniqueTips.forEach(t => {
+          const li = document.createElement('li');
+          li.className = 'tip-item';
+          li.innerHTML = t;
+          tipsList.appendChild(li);
+        });
+      }
+
+      /* ------------------------------- Events ------------------------------ */
+      dom.addSubjectBtn.addEventListener('click', addSubjectRow);
+
+      dom.subjectsList.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (!target.classList.contains('btn-remove-subject')) return;
+        removeSubjectRow(target);
+      });
+
+      dom.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const structured = validateAndStructure();
+        if (!structured) return;
+
+        // Loading State
+        const submitBtn = document.getElementById('submit-btn');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Generating...';
+
+        // Simulate processing delay for effect
+        setTimeout(() => {
+          let timetable;
+          try {
+            timetable = generateStudyTimetable(structured.totalHours, structured.subjects);
+          } catch (err) {
+            showError(err && err.message ? err.message : 'Please check your inputs and try again.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+          }
+
+          window.aiStudyPlannerFormData = structured;
+          window.aiStudyPlannerTimetable = timetable;
+          persistState(structured, timetable);
+
+          renderTimetableCards(timetable);
+          generateSmartTips(structured.subjects);
+          updateProgress(); // Refresh progress based on new total hours
+          
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }, 800);
+      });
+
+      dom.resetBtn?.addEventListener('click', resetApp);
+
+      document.getElementById('profile-btn')?.addEventListener('click', () => {
+        // Smooth exit
+        document.body.style.opacity = '0';
+        setTimeout(() => window.location.href = 'profile.html', 400);
+      });
+
+      document.getElementById('logout-btn')?.addEventListener('click', () => {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUserEmail');
+        // Smooth exit
+        document.body.style.opacity = '0';
+        setTimeout(() => window.location.href = 'login.html', 400);
+      });
+
+      /* ------------------------------ Init ------------------------------ */
+      refreshSubjectRows();
+      restoreOnLoad();
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") { Notification.requestPermission(); }
+    })();
+  </script>
+</body>
+
+</html>
